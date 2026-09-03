@@ -1,20 +1,42 @@
 import { useState } from 'react'
+import emailjs from '@emailjs/browser'
 import Reveal from './Reveal.jsx'
 
 const CONTACT_EMAIL = 'info.arsnbiotech@gmail.com'
 
+const EMAILJS_SERVICE_ID = 'service_whn8yvp'
+const EMAILJS_TEMPLATE_ID = 'template_28eg4kj'
+const EMAILJS_PUBLIC_KEY = '-z7-3xBA3lpnv009_'
+
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
+  const [status, setStatus] = useState('idle') // idle | sending | success | error
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`New project inquiry — ${form.name || 'Website visitor'}`)
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
-    )
-    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`
+    setStatus('sending')
+
+    emailjs
+      .send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          from_name: form.name,
+          from_email: form.email,
+          message: form.message,
+        },
+        EMAILJS_PUBLIC_KEY
+      )
+      .then(() => {
+        setStatus('success')
+        setForm({ name: '', email: '', message: '' })
+      })
+      .catch((error) => {
+        console.error('EmailJS error:', error)
+        setStatus('error')
+      })
   }
 
   return (
@@ -33,7 +55,6 @@ export default function Contact() {
             <p>{CONTACT_EMAIL}</p>
           </div>
         </Reveal>
-
         <Reveal delay={0.1}>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -77,10 +98,18 @@ export default function Contact() {
           </div>
           <button
             type="submit"
-            className="px-6 py-3.5 rounded-sm bg-brand-gradient text-white font-semibold text-sm"
+            disabled={status === 'sending'}
+            className="px-6 py-3.5 rounded-sm bg-brand-gradient text-white font-semibold text-sm disabled:opacity-60"
           >
-            Send message
+            {status === 'sending' ? 'Sending...' : 'Send message'}
           </button>
+
+          {status === 'success' && (
+            <p className="text-green-accent text-sm">Message sent! We'll get back to you soon.</p>
+          )}
+          {status === 'error' && (
+            <p className="text-red-400 text-sm">Something went wrong. Please try again or email us directly.</p>
+          )}
         </form>
         </Reveal>
       </div>
